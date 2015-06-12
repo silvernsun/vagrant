@@ -1,0 +1,38 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "Debian"
+  config.vm.network "private_network", ip: "10.0.0.20"
+  config.vm.provider "virtualbox" do |v|
+    v.host = "webserver"
+    v.nested = true
+    v.gui = false
+  end
+
+  config.vm.synced_folder ".", "/vagrant"
+  config.vm.synced_folder "./manifests", "/opt/manifests"
+
+  config.vm.provision "shell", inline: 
+    $script = <<SCRIPT
+    
+    echo Shell provisioning...
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 9D6D8F6BC857C906
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 7638D0442B90D010
+    sudo apt-get update
+    sudo apt-get install puppet -y
+    puppet module install puppetlabs-apache
+    puppet module install puppetlabs-mysql
+    puppet module install thias-vsftpd
+    puppet module install mikegleasonjr-wordpress
+    
+SCRIPT
+
+  config.vm.provision "puppet" do |puppet|
+    puppet.manifests_path = "manifests"
+    puppet.manifest_file = "default.pp"
+  end
+end
